@@ -1,0 +1,47 @@
+- name: Install Docker and Docker Compose on Ubuntu
+  hosts: all
+  become: yes
+  tasks:
+    - name: Check if Docker is installed
+      command: which docker
+      register: docker_installed
+      ignore_errors: yes
+      # Игнорируем ошибки, если Docker не установлен (команда вернёт код != 0)
+
+    - name: Install Docker if not present
+      apt:
+        name: docker-ce
+        state: present
+      when: docker_installed.rc != 0
+      # Устанавливаем Docker, если команда `which docker` завершилась с ошибкой
+
+    - name: Ensure Docker service is enabled and running
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Get the latest Docker Compose version
+      uri:
+        url: https://api.github.com/repos/docker/compose/releases/latest
+        return_content: yes
+      register: docker_compose_release
+
+    - name: Extract the download URL for the latest Docker Compose binary
+      set_fact:
+        docker_compose_url: "{{ docker_compose_release.json.assets | selectattr('name', 'match', '^docker-compose-linux-x86_64$') | map(attribute='browser_download_url') | first }}"
+
+    - name: Download Docker Compose binary
+      get_url:
+        url: "{{ docker_compose_url }}"
+        dest: /usr/local/bin/docker-compose
+        mode: '0755'
+
+    - name: Verify Docker Compose installation
+      command: docker-compose --version
+      register: docker_compose_version
+      changed_when: false
+
+    - name: Show Docker Compose version
+      debug:
+        msg: "Docker Compose version installed: {{ docker_compose_version.stdout }}"

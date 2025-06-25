@@ -1,0 +1,258 @@
+---
+- name: Configure vulnerable environments on remote machine
+  hosts: all
+  become: yes
+  tasks:
+    # Update and install required packages
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install required packages
+      apt:
+        name:
+          - netcat
+          - net-tools
+        state: present
+    
+    - name: Ensure pip3 is installed
+      apt:
+        name: python3-pip
+        state: present
+
+    # Install docker-py using pip3
+    - name: Ensure docker-py is installed
+      pip:
+        name: docker
+        executable: pip3
+        state: present
+
+    - name: Ensure Docker service is enabled and running
+      systemd:
+        name: docker
+        enabled: yes
+        state: started
+
+    # Create directories and files
+    - name: Create /tmp/test/share directory
+      file:
+        path: /tmp/test/share
+        state: directory
+        mode: '0755'
+
+    - name: Create /tmp/test/nfsshare directory
+      file:
+        path: /tmp/test/nfsshare
+        state: directory
+        mode: '0755'
+
+    - name: Create password files
+      copy:
+        content: "secretpass"
+        dest: "{{ item }}"
+        mode: '0644'
+      loop:
+        - /tmp/test/share/password.txt
+        - /tmp/test/nfsshare/password.txt
+
+    # Pull and run Docker containers
+    - name: Pull Juice-shop container
+      docker_image:
+        name: bkimminich/juice-shop
+        source: pull
+
+    - name: Run Juice-shop container
+      docker_container:
+        name: juice-shop
+        image: bkimminich/juice-shop
+        restart_policy: always
+        ports:
+          - "80:3000"
+        state: started
+
+    - name: Create a user-defined Docker network
+      docker_network:
+        name: local-network
+        state: present
+
+    - name: Pull DVWA container
+      docker_image:
+        name: vulnerables/web-dvwa
+        source: pull
+
+    - name: Run DVWA container
+      docker_container:
+        name: dvwa
+        image: vulnerables/web-dvwa
+        restart_policy: always
+        ports:
+          - "81:80"
+        networks:
+          - name: local-network
+        state: started
+
+    # - name: Pull XVWA container (local)
+    #   docker_image:
+    #     name: bitnetsecdave/xvwa
+    #     source: pull
+
+    # - name: Run XVWA container (local)
+    #   docker_container:
+    #     name: xvwalocal
+    #     image: bitnetsecdave/xvwa
+    #     restart_policy: always
+    #     ports:
+    #       - "127.0.0.1:8082:80"
+    #     networks:
+    #       - name: local-network
+    #     extra_hosts:
+    #       - "dvwa:127.0.0.1"
+    #     state: started
+
+    # - name: Pull XVWA container (public)
+    #   docker_image:
+    #     name: bitnetsecdave/xvwa
+    #     source: pull
+
+    # - name: Run XVWA container (public)
+    #   docker_container:
+    #     name: xvwa
+    #     image: bitnetsecdave/xvwa
+    #     restart_policy: always
+    #     ports:
+    #       - "82:80"
+    #     state: started
+
+    # - name: Pull Vulnerable GraphQL container
+    #   docker_image:
+    #     name: dolevf/dvga
+    #     source: pull
+
+    # - name: Run Vulnerable GraphQL container
+    #   docker_container:
+    #     name: dvga
+    #     image: dolevf/dvga
+    #     restart_policy: always
+    #     ports:
+    #       - "84:5013"
+    #     state: started
+
+    - name: Pull Vampi container
+      docker_image:
+        name: erev0s/vampi
+        source: pull
+
+    - name: Run Vampi container
+      docker_container:
+        name: vampi
+        image: erev0s/vampi
+        restart_policy: always
+        ports:
+          - "85:5000"
+        state: started
+
+    - name: Pull Samba container
+      docker_image:
+        name: dperson/samba
+        source: pull
+
+    - name: Run Samba container
+      docker_container:
+        name: samba
+        image: dperson/samba
+        restart_policy: always
+        ports:
+          - "139:139"
+          - "445:445"
+          - "137:137/udp"
+          - "138:138/udp"
+        volumes:
+          - "/tmp/test/share:/share:ro"
+        command:
+          - "-v /tmp/test/share:/share:r -S -p -u john;password1 -u bob;password2 -s public;/share -s servershare;/servershare;no;no;no;john,bob -s johnshare;/johnshare;yes;no;no;john -s bobshare;/bobshare;yes;no;no;bob"
+        state: started
+
+    - name: Pull Vulnerable FTP container
+      docker_image:
+        name: uexpl0it/vulnerable-packages:backdoored-vsftpd-2.3.4
+        source: pull
+
+    - name: Run Vulnerable FTP container
+      docker_container:
+        name: vsftpd
+        image: uexpl0it/vulnerable-packages:backdoored-vsftpd-2.3.4
+        restart_policy: always
+        ports:
+          - "21:21"
+          - "6200:6200"
+        state: started
+
+    - name: Pull Vulnerable SMTP container
+      docker_image:
+        name: turgon37/smtp-relay
+        source: pull
+
+    - name: Run Vulnerable SMTP container
+      docker_container:
+        name: smtpd
+        image: turgon37/smtp-relay
+        restart_policy: always
+        ports:
+          - "25:25"
+        env:
+          RELAY_POSTMASTER: "postmaster@darkrelay.io"
+          RELAY_MYHOSTNAME: "smtp-relay.darkrelay.io"
+          RELAY_MYDOMAIN: "darkrelay.io"
+          RELAY_HOST: "[127.0.0.1]:25"
+        state: started
+
+    - name: Pull SNMP container
+      docker_image:
+        name: ehazlett/snmpd:latest
+        source: pull
+
+    - name: Run SNMP container
+      docker_container:
+        name: snmpd
+        image: ehazlett/snmpd:latest
+        restart_policy: always
+        ports:
+          - "161:161/udp"
+          - "199:199"
+        state: started
+
+    - name: Pull NFS container
+      docker_image:
+        name: itsthenetwork/nfs-server-alpine
+        source: pull
+
+    - name: Run NFS container
+      docker_container:
+        name: nfs
+        image: itsthenetwork/nfs-server-alpine:latest
+        restart_policy: always
+        privileged: yes
+        volumes:
+          - "/tmp/test/nfsshare:/nfsshare"
+        env:
+          SHARED_DIRECTORY: "/nfsshare"
+        ports:
+          - "2049:2049"
+        state: started
+
+    - name: Pull Heartbleed container
+      docker_image:
+        name: vulhub/openssl:1.0.1c-with-nginx
+        source: pull
+
+    - name: Run Heartbleed container
+      docker_container:
+        name: heartbleed
+        image: vulhub/openssl:1.0.1c-with-nginx
+        restart_policy: always
+        ports:
+          - "443:443"
+          - "8080:80"
+        volumes:
+          - "/var/www/html:/var/www/html"
+        state: started

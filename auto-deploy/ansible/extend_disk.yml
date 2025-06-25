@@ -1,0 +1,75 @@
+---
+- name: Expand root filesystem with new partition on sda using fdisk
+  hosts: all
+  become: yes
+  vars:
+    root_vg: "vgubuntu-20-04LTS"  
+    root_vg_filesys: "vgubuntu--20--04LTS"
+    root_lv: "root"              
+  tasks:
+    - name: Install required tools
+      apt:
+        name:
+          - fdisk
+          - lvm2
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: Create a new partition on /dev/sda using fdisk
+      shell: |
+        echo -e "n\np\n3\n\n\nt\n3\n8e\nw" | sudo fdisk /dev/sda
+      args:
+        executable: /bin/bash
+      register: fdisk_output
+      changed_when: "'created a new partition' in fdisk_output.stdout"
+
+    - name: Reload partition table
+      command: partprobe /dev/sda
+
+    - name: Check if /dev/sda3 exists and is already in a volume group
+      command: pvs --noheadings -o vg_name /dev/sda3
+      register: pvs_check
+      failed_when: false
+      changed_when: false
+
+    - name: Debug pvs_check output
+      debug:
+        msg: "pvs_check.stdout: '{{ pvs_check.stdout | trim }}'"
+
+    - name: Initialize the new partition as a physical volume (PV) if not already in VG
+      command: pvcreate /dev/sda3
+      args:
+        creates: /dev/sda3
+      when: pvs_check.stdout | trim == ""
+
+    - name: Get current PVs in the volume group
+      command: vgs --noheadings -o pv_name {{ root_vg }}
+      register: current_pvs
+      changed_when: false
+      failed_when: current_pvs.rc != 0 and current_pvs.rc != 5
+
+    - name: Debug current PVs in VG
+      debug:
+        msg: "Current PVs in VG: '{{ current_pvs.stdout | trim }}'"
+
+    - name: Extend the volume group (VG) with the new physical volume (PV) if not already added
+      lvg:
+        vg: "{{ root_vg }}"
+        pvs: "{{ current_pvs.stdout | trim }},/dev/sda3"
+        state: present
+      when:
+        - pvs_check.stdout | trim == ""
+        - "'/dev/sda3' not in current_pvs.stdout"
+
+    - name: Extend the logical volume (LV) to use all available space
+      lvol:
+        vg: "{{ root_vg }}"
+        lv: "{{ root_lv }}"
+        size: +100%FREE
+        resizefs: yes
+
+    - name: Ensure the filesystem is resized
+      filesystem:
+        fstype: ext4  
+        dev: "/dev/mapper/{{ root_vg_filesys }}-{{ root_lv }}"
+        resizefs: yes

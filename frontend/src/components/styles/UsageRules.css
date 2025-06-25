@@ -1,0 +1,59 @@
+/* Общий контейнер */
+.rules-container {
+    font-family: Arial, sans-serif;
+    padding: 20px;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+/* Заголовок */
+.rules-title {
+    font-size: 24px;
+    color: #333;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+/* Основной контент */
+.rules-content {
+    margin-top: 20px;
+}
+
+/* Общие правила */
+.rules-general-title {
+    font-size: 20px;
+    color: #333;
+    margin-bottom: 10px;
+}
+
+.rules-general-text {
+    font-size: 16px;
+    line-height: 1.6;
+    color: #555;
+}
+
+/* Правила для синей команды */
+.rules-blue-team-title {
+    font-size: 20px;
+    color: #007bff; /* Синий цвет заголовка */
+    margin-bottom: 10px;
+}
+
+.rules-blue-team-text {
+    font-size: 16px;
+    line-height: 1.6;
+    color: #555;
+}
+
+/* Правила для красной команды */
+.rules-red-team-title {
+    font-size: 20px;
+    color: #dc3545; /* Красный цвет заголовка */
+    margin-bottom: 10px;
+}
+
+.rules-red-team-text {
+    font-size: 16px;
+    line-height: 1.6;
+    color: #555;
+}

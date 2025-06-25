@@ -1,0 +1,121 @@
+.list-container {
+    max-width: 400px;
+    margin: 0 auto;
+    background-color: #333;
+    max-height: 500px;
+    
+    border: thick double #ecfbfc;
+    
+  }
+  
+  .list {
+    list-style-type: none;
+    padding: 0;
+  }
+
+  .item-list {
+    margin-top: 5px;
+    display: flex;
+    margin-left: 10px;
+    margin-right: 10px;
+    padding-left: 20%;
+    padding-right: 10px;
+    color: white;
+  }
+
+  .sub-list {
+    list-style-type: none;
+    padding-left: 20px;
+  }
+  
+  /* .add-item {
+    margin-top: 16px;
+  } */
+  
+  /* .add-item input {
+    padding: 8px;
+    margin-right: 8px;
+  } */
+  
+  .add-item {
+    width: 250px;
+    margin-left: auto;
+    margin-right: auto;
+    display: flex;
+    justify-content: center;
+    padding: 10px;
+    margin-top: 5px;
+    margin-bottom: 5px;
+    background-color: #f66d52;
+    color: white;
+    border: none;
+    font-family: 'Arimo', sans-serif;
+    font-weight: bold;
+    padding-bottom: 10px;
+    
+  }
+
+  .button-show {
+    width: 250px;
+    margin-left: auto;
+    margin-right: auto;
+    display: flex;
+    justify-content: center;
+    padding: 10px;
+    margin-top: 5px;
+    margin-bottom: 5px;
+    background-color: #f66d52;
+    color: white;
+    border: none;
+    font-family: 'Arimo', sans-serif;
+    font-weight: bold;
+    
+    padding-bottom: 10px;
+    
+  }
+
+  .label-show {
+    font-family: 'Arimo', sans-serif;
+    font-weight: bold;
+    text-align: center;
+    color: white;
+  }
+
+
+  .to-item-button {
+    background-color: #f66d52; /* Цвет фона кнопки */
+    border: none; /* Убираем границу */
+    color: white; /* Цвет текста (иконки) */
+    padding: 15px; /* Отступы внутри кнопки */
+    font-size: 24px; /* Размер иконки */
+    cursor: pointer; /* Указатель курсора при наведении */
+    border-radius: 8px; /* Светлые углы */
+    transition: background-color 0.3s, transform 0.2s; /* Плавный переход */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 10px; /* Ширина кнопки */
+    height: 10px; /* Высота кнопки */
+    margin-left: 10px;
+    margin-right: 10px;
+  }
+  .to-item-button img {
+    width: 10px; /* Ширина иконки */
+    height: 10px; /* Высота иконки */
+  }
+  .to-item-button:hover {
+    background-color: #f82900; /* Цвет фона при наведении */
+  }
+
+  .to-item-button:active {
+      transform: scale(0.95); /* Эффект нажатия */
+  }
+
+
+
+  .link-button {
+    background-color: #45a049;
+  }
+
+
+  

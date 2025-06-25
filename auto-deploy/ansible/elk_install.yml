@@ -1,0 +1,176 @@
+---
+- name: Install and configure ELK stack with custom Elastic repository
+  hosts: all
+  become: yes
+  vars:
+    elastic_repo_url: "http://elasticrepo.serveradmin.ru"
+    elastic_repo_key: "{{ elastic_repo_url }}/elastic.asc"
+    elastic_repo_list: "/etc/apt/sources.list.d/elasticrepo.list"
+    elasticsearch_password: "elastic"        # Пароль для пользователя elastic
+    kibana_system_password: "kibana"  # Пароль для пользователя kibana_system
+
+  tasks:
+    - name: Add custom Elastic repository
+      block:
+        - name: Add custom Elastic repository to sources list
+          copy:
+            dest: "{{ elastic_repo_list }}"
+            content: "deb {{ elastic_repo_url }} bullseye main\n"
+            owner: root
+            group: root
+            mode: '0644'
+
+        - name: Import custom Elastic GPG key
+          apt_key:
+            url: "{{ elastic_repo_key }}"
+            state: present
+
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install ELK components (Elasticsearch, Logstash, Kibana)
+      apt:
+        name:
+          - elasticsearch
+          - logstash
+          - kibana
+        state: present
+
+    - name: Reload systemd daemon
+      command: systemctl daemon-reload
+
+    # Elasticsearch configuration and service management
+    - name: Configure Elasticsearch
+      lineinfile:
+        path: /etc/elasticsearch/elasticsearch.yml
+        regexp: "^#?{{ item.key }}:"
+        line: "{{ item.key }}: {{ item.value }}"
+        state: present
+      loop:
+        - { key: "network.host", value: "0.0.0.0" }
+        # - { key: "discovery.type", value: "single-node" }
+        - { key: "xpack.security.enabled", value: "true" }
+
+    - name: Enable and start Elasticsearch service
+      service:
+        name: elasticsearch
+        enabled: yes
+        state: started
+
+    # Wait for Elasticsearch to be ready
+    - name: Wait for Elasticsearch to be ready
+      wait_for:
+        host: localhost
+        port: 9200
+        timeout: 300
+
+    - name: Reset password for Elasticsearch user
+      shell: >
+        /usr/share/elasticsearch/bin/elasticsearch-reset-password -u elastic --batch
+      register: elastic_password_output
+    
+    - name: Extract new password for 'elastic' user using awk
+      shell: >
+        echo "{{ elastic_password_output.stdout }}" | awk '/New value:/ {print $3}'
+      register: elastic_password_raw
+
+    - name: Set fact for Elasticsearch password
+      set_fact:
+        elasticsearch_password: "{{ elastic_password_raw.stdout }}"
+
+    - name: Reset password for Kibana user 'kibana_system'
+      shell: >
+        /usr/share/elasticsearch/bin/elasticsearch-reset-password -u kibana_system --batch
+      register: kibana_password_output
+
+    - name: Extract new password for 'kibana_system' user using awk
+      shell: >
+        echo "{{ kibana_password_output.stdout }}" | awk '/New value:/ {print $3}'
+      register: kibana_password_raw
+
+    - name: Set fact for Kibana system password
+      set_fact:
+        kibana_system_password: "{{ kibana_password_raw.stdout }}"
+
+    # Kibana configuration and service management
+    - name: Copy Elasticsearch certificates to Kibana
+      copy:
+        src: /etc/elasticsearch/certs/
+        dest: /etc/kibana/certs/
+        remote_src: yes
+        owner: root
+        group: kibana
+        mode: '0750'
+
+    - name: Configure Kibana settings
+      lineinfile:
+        path: /etc/kibana/kibana.yml
+        regexp: "^#?{{ item.key }}:"
+        line: "{{ item.line }}"
+        state: present
+      loop:
+        - { key: "server.host", line: 'server.host: "0.0.0.0"' }
+        - { key: "elasticsearch.hosts", line: 'elasticsearch.hosts: ["https://localhost:9200"]' }
+        - { key: "elasticsearch.username", line: 'elasticsearch.username: "kibana_system"' }
+        - { key: "elasticsearch.password", line: 'elasticsearch.password: "{{ kibana_system_password }}"' }
+        - { key: "elasticsearch.ssl.certificateAuthorities", line: 'elasticsearch.ssl.certificateAuthorities: [ "/etc/kibana/certs/http_ca.crt" ]' }
+
+    - name: Enable and start Kibana service
+      service:
+        name: kibana
+        enabled: yes
+        state: started
+
+    # Logstash configuration and service management
+    - name: Configure Logstash for rsyslog input and console output
+      copy:
+        dest: /etc/logstash/conf.d/logstash.conf
+        content: |
+          input {
+            beats {
+              port => 5044
+              type => "suricata"
+            }
+          }
+          filter {
+            if [type] == "suricata" {
+                mutate {
+                  add_tag => ["suricata"]
+                }
+            }
+          }
+          output {
+            elasticsearch {
+              hosts => ["https://localhost:9200"]
+              ssl => true
+              cacert => "/etc/logstash/certs/http_ca.crt"
+              user => "elastic"
+              password => "{{ elasticsearch_password }}"
+              index => "suricata-%{+YYYY.MM.dd}"
+            }
+          }
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Copy Elasticsearch certificates to Logstash
+      copy:
+        src: /etc/elasticsearch/certs/
+        dest: /etc/logstash/certs/
+        remote_src: yes
+        owner: root
+        group: logstash
+        mode: '0750'
+
+    - name: Enable and start Logstash service
+      service:
+        name: logstash
+        enabled: yes
+        state: started
+    
+    - name: Debug new passwords
+      debug:
+        msg:
+          - "Elasticsearch password: {{ elasticsearch_password }}"
+          - "Kibana system password: {{ kibana_system_password }}"

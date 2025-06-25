@@ -1,0 +1,13 @@
+.form-backend-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 350px;
+    margin: 0 auto;
+    margin-top: 10%;
+    margin-left: 40%;
+    color: white;
+    background-color: rgb(54, 105, 88);
+    position: absolute;
+  }

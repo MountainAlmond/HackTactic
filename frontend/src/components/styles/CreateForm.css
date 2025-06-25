@@ -1,0 +1,75 @@
+/* Основной контейнер формы */
+.create-user-form {
+    max-width: 400px;
+    margin: 50px auto;
+    padding: 30px;
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.06);
+    text-align: center;
+  }
+  
+  /* Заголовок формы */
+  .create-user-form h2 {
+    font-size: 24px;
+    margin-bottom: 20px;
+    color: #333333;
+  }
+  
+  /* Группа ввода */
+  .create-user-form .input-group {
+    margin-bottom: 15px;
+    text-align: left;
+  }
+  
+  /* Метка (label) */
+  .create-user-form label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+    color: #555555;
+  }
+  
+  /* Поле ввода */
+  .create-user-form .input {
+    width: 100%;
+    padding: 12px;
+    font-size: 16px;
+    border: 1px solid #cccccc;
+    border-radius: 8px;
+    transition: border-color 0.3s ease;
+  }
+  
+  .create-user-form .input:focus {
+    border-color: #6c63ff;
+    outline: none;
+  }
+  
+  /* Сообщения об ошибках */
+  .create-user-form .error {
+    color: #e74c3c;
+    font-size: 14px;
+    margin-top: 5px;
+  }
+  
+  /* Кнопка отправки */
+  .create-user-form .button-submit {
+    width: 100%;
+    padding: 12px;
+    font-size: 16px;
+    background: #000000;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+  }
+  
+  .create-user-form .button-submit:hover {
+    background: #5a51e0;
+  }
+  
+  .create-user-form .button-submit:disabled {
+    background: #b3b3b3;
+    cursor: not-allowed;
+  }
